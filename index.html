@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1B5E20">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mi Ganadería">
+<link rel="icon" id="favicon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231B5E20'/%3E%3Ctext x='50' y='68' font-size='55' text-anchor='middle'%3E🐄%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<title>Mi Ganadería</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --green-dk: #1B5E20; --green-md: #388E3C; --green-lt: #C8E6C9; --green-xl: #F1F8E9;
+    --blue-dk: #0D47A1;  --blue-md: #1565C0;  --blue-lt: #BBDEFB;  --blue-xl: #E3F2FD;
+    --amber-dk:#E65100;  --amber-md:#EF6C00;  --amber-lt:#FFE0B2;  --amber-xl:#FFF8E1;
+    --red-dk:  #B71C1C;  --red-md:  #C62828;  --red-lt:  #FFCDD2;  --red-xl:  #FFEBEE;
+    --purple-dk:#4A148C; --purple-md:#6A1B9A; --purple-lt:#E1BEE7; --purple-xl:#F3E5F5;
+    --teal-dk: #004D40;  --teal-md: #00695C;  --teal-lt: #B2DFDB;  --teal-xl: #E0F2F1;
+    --gray-xl: #FAFAFA;  --gray-lt: #EEEEEE;  --gray-md: #757575;  --gray-dk: #212121;
+    --white: #FFFFFF;
+    --radius: 12px; --radius-sm: 8px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.12);
+    --shadow-lg: 0 4px 20px rgba(0,0,0,0.18);
+    --nav-h: 64px; --header-h: 56px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4f0; color: var(--gray-dk); overflow-x: hidden; }
+
+  /* ── TOP HEADER ── */
+  .top-header {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+    background: var(--green-dk); color: white; display: flex; align-items: center;
+    padding: 0 16px; z-index: 100; box-shadow: var(--shadow-lg);
+    justify-content: space-between;
+  }
+  .top-header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.3px; }
+  .top-header .subtitle { font-size: 11px; opacity: 0.8; margin-top: 1px; }
+  .btn-export {
+    background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.5);
+    color: white; padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .btn-export:active { background: rgba(255,255,255,0.35); }
+
+  /* ── MAIN CONTENT ── */
+  .main { padding-top: calc(var(--header-h) + 8px); padding-bottom: calc(var(--nav-h) + 16px); min-height: 100vh; }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-h);
+    background: white; display: flex; border-top: 1px solid var(--gray-lt);
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.1); z-index: 100;
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; cursor: pointer; border: none; background: none; color: var(--gray-md);
+    font-size: 10px; font-weight: 500; padding: 8px 4px; transition: color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-btn.active { color: var(--green-md); }
+  .nav-btn .icon { font-size: 22px; }
+  .nav-btn.active .icon { filter: drop-shadow(0 0 3px rgba(56,142,60,0.4)); }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: white; border-radius: var(--radius); box-shadow: var(--shadow);
+    margin: 12px; padding: 16px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 700; color: var(--gray-md); text-transform: uppercase;
+    letter-spacing: 0.8px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+  }
+
+  /* ── DASHBOARD KPIs ── */
+  .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px; }
+  .kpi-card {
+    background: white; border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow);
+    border-left: 4px solid var(--green-md);
+  }
+  .kpi-card.blue  { border-left-color: var(--blue-md); }
+  .kpi-card.amber { border-left-color: var(--amber-md); }
+  .kpi-card.red   { border-left-color: var(--red-md); }
+  .kpi-card.teal  { border-left-color: var(--teal-md); }
+  .kpi-card.purple{ border-left-color: var(--purple-md); }
+  .kpi-label { font-size: 11px; color: var(--gray-md); margin-bottom: 4px; }
+  .kpi-value { font-size: 24px; font-weight: 700; color: var(--gray-dk); line-height: 1; }
+  .kpi-value.good  { color: var(--green-dk); }
+  .kpi-value.bad   { color: var(--red-md); }
+  .kpi-sub { font-size: 11px; color: var(--gray-md); margin-top: 3px; }
+
+  /* ── SECTION HEADER ── */
+  .section-hdr {
+    background: var(--green-dk); color: white; padding: 10px 16px 8px;
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+    margin: 12px 12px 0; border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; margin: 0 12px; background: white; border-radius: 0 0 var(--radius) var(--radius); box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--green-xl); color: var(--green-dk); padding: 10px 12px; text-align: left; font-weight: 600; font-size: 11px; white-space: nowrap; border-bottom: 2px solid var(--green-lt); }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--gray-lt); vertical-align: middle; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: var(--gray-xl); }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: var(--green-lt); color: var(--green-dk); }
+  .badge-amber { background: var(--amber-lt); color: var(--amber-dk); }
+  .badge-red   { background: var(--red-lt); color: var(--red-md); }
+  .badge-blue  { background: var(--blue-lt); color: var(--blue-dk); }
+  .badge-gray  { background: var(--gray-lt); color: var(--gray-md); }
+  .filter-chip {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4);
+    color: white; font-size: 11px; padding: 5px 12px; border-radius: 14px;
+    cursor: pointer; font-weight: 600;
+  }
+  .filter-chip.active { background: white; color: var(--green-dk); }
+  .row-baja { opacity: 0.55; }
+  .btn-icon-row { display: flex; gap: 4px; }
+  .btn-icon-row button { border: none; background: none; font-size: 16px; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+  .btn-icon-row button:active { background: var(--gray-lt); }
+
+  /* ── FAB BUTTON ── */
+  .fab {
+    position: fixed; bottom: calc(var(--nav-h) + 16px); right: 16px;
+    width: 56px; height: 56px; border-radius: 50%; background: var(--green-md);
+    color: white; font-size: 28px; border: none; box-shadow: var(--shadow-lg);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    z-index: 90; transition: background 0.2s, transform 0.1s;
+  }
+  .fab:active { background: var(--green-dk); transform: scale(0.94); }
+
+  /* ── MODAL ── */
+  .modal-bg {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    z-index: 200; align-items: flex-end; justify-content: center;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: white; border-radius: var(--radius) var(--radius) 0 0;
+    width: 100%; max-height: 92vh; overflow-y: auto; padding: 0 0 32px;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-header {
+    position: sticky; top: 0; background: white; padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--gray-lt); display: flex; justify-content: space-between;
+    align-items: center; z-index: 10;
+  }
+  .modal-title { font-size: 17px; font-weight: 700; color: var(--gray-dk); }
+  .modal-close { font-size: 24px; cursor: pointer; color: var(--gray-md); padding: 4px 8px; border: none; background: none; }
+  .modal-body { padding: 16px; }
+
+  /* ── FORM ELEMENTS ── */
+  .form-group { margin-bottom: 16px; }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-md); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  input, select, textarea {
+    width: 100%; padding: 12px 14px; border: 1.5px solid var(--gray-lt);
+    border-radius: var(--radius-sm); font-size: 15px; color: var(--gray-dk);
+    background: white; -webkit-appearance: none; appearance: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--green-md); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .btn-primary {
+    width: 100%; padding: 15px; background: var(--green-md); color: white;
+    border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 700;
+    cursor: pointer; margin-top: 8px; transition: background 0.2s;
+  }
+  .btn-primary:active { background: var(--green-dk); }
+  .btn-danger {
+    background: none; border: none; color: var(--red-md); font-size: 18px;
+    cursor: pointer; padding: 4px 8px;
+  }
+  .btn-secondary {
+    width: 100%; padding: 13px; background: var(--gray-xl); color: var(--gray-dk);
+    border: 1.5px solid var(--gray-lt); border-radius: var(--radius-sm); font-size: 15px;
+    font-weight: 600; cursor: pointer; margin-top: 8px;
+  }
+
+  /* ── ALERT CARDS ── */
+  .alert { padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 10px; font-size: 13px; display: flex; gap: 10px; align-items: flex-start; }
+  .alert-warn { background: var(--amber-xl); border-left: 4px solid var(--amber-md); }
+  .alert-info { background: var(--blue-xl); border-left: 4px solid var(--blue-md); }
+  .alert-good { background: var(--green-xl); border-left: 4px solid var(--green-md); }
+
+  /* ── STAT ROW ── */
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--gray-lt); }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { font-size: 13px; color: var(--gray-md); }
+  .stat-value { font-size: 15px; font-weight: 700; color: var(--gray-dk); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: calc(var(--nav-h) + 80px); left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--gray-dk); color: white; padding: 12px 20px; border-radius: 24px;
+    font-size: 14px; z-index: 300; opacity: 0; transition: opacity 0.3s, transform 0.3s;
+    white-space: nowrap; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── EMPTY STATE ── */
+  .empty { text-align: center; padding: 40px 20px; color: var(--gray-md); }
+  .empty .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; }
+
+  /* ── INSTALL BANNER ── */
+  .install-banner {
+    margin: 12px; background: linear-gradient(135deg, var(--green-dk), var(--blue-dk));
+    color: white; border-radius: var(--radius); padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow);
+  }
+  .install-banner .icon { font-size: 28px; }
+  .install-banner p { font-size: 12px; opacity: 0.9; line-height: 1.4; }
+  .install-banner strong { display: block; font-size: 14px; margin-bottom: 2px; }
+  .btn-install {
+    background: rgba(255,255,255,0.25); border: 1.5px solid rgba(255,255,255,0.6);
+    color: white; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP HEADER -->
+<div class="top-header">
+  <div>
+    <h1>🐄 Mi Ganadería</h1>
+    <div class="subtitle" id="header-subtitle">Sin señal · Todo guardado</div>
+  </div>
+  <div style="display:flex; gap:6px">
+    <button class="btn-export" onclick="openSyncSettings()" id="btn-sync" title="Sincronizar">🔄</button>
+    <button class="btn-export" onclick="exportExcel()">📥 Excel</button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- PAGE: DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div id="install-banner-wrap"></div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+    <div class="card" id="alerts-card">
+      <div class="card-title">⚠️ Alertas</div>
+      <div id="alerts-body"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🐄 Hato</div>
+      <div id="hato-summary"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: PRODUCCIÓN -->
+  <div class="page" id="page-prod">
+    <div class="section-hdr">🥛 Producción de Leche</div>
+    <div class="table-wrap">
+      <table id="tbl-prod">
+        <thead><tr><th>Fecha</th><th>Vaca</th><th>Mañana</th><th>Tarde</th><th>Total</th><th>Ingreso</th><th></th></tr></thead>
+        <tbody id="tbody-prod"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PAGE: INVENTARIO -->
+  <div class="page" id="page-inv">
+    <div class="section-hdr" style="justify-content:space-between">
+      <span>🐄 Inventario del Hato</span>
+      <div style="display:flex;gap:6px">
+        <button class="filter-chip active" id="chip-activos" onclick="setInvFilter('activos')">Activos</button>
+        <button class="filter-chip" id="chip-todos" onclick="setInvFilter('todos')">Todos</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="tbl-inv">
+        <thead><tr><th>ID</th><th>Nombre</th><th>Categoría</th><th>Estado</th><th>Preñada</th><th>Últ. Parto</th><th></th></tr></thead>
+        <tbody id="tbody-inv"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PAGE: SANIDAD / REPRO -->
+  <div class="page" id="page-san">
+    <div class="section-hdr" style="background:var(--red-dk)">💉 Sanidad</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fecha</th><th>Animal</th><th>Evento</th><th>Producto</th><th>Costo</th><th></th></tr></thead>
+        <tbody id="tbody-san"></tbody>
+      </table>
+    </div>
+    <div class="section-hdr" style="background:var(--purple-dk); margin-top:12px">🐮 Reproducción</div>
+    <div class="table-wrap" style="margin-bottom:12px">
+      <table>
+        <thead><tr><th>Animal</th><th>Servicio</th><th>F.Servicio</th><th>Diagnóstico</th><th>F.Parto</th><th></th></tr></thead>
+        <tbody id="tbody-repro"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PAGE: COSTOS -->
+  <div class="page" id="page-costos">
+    <div class="card" style="margin-bottom:8px">
+      <div class="card-title" style="color:var(--amber-dk)">💰 Ingresos del Mes</div>
+      <div id="ingresos-body"></div>
+    </div>
+    <div class="card" style="margin-bottom:8px">
+      <div class="card-title" style="color:var(--red-md)">💸 Costos del Mes</div>
+      <div id="costos-body"></div>
+    </div>
+    <div class="card" id="resultado-card">
+      <div class="card-title" style="color:var(--teal-dk)">📈 Resultado</div>
+      <div id="resultado-body"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="goPage('dashboard',this)">
+    <span class="icon">📊</span><span>Resumen</span>
+  </button>
+  <button class="nav-btn" onclick="goPage('prod',this)">
+    <span class="icon">🥛</span><span>Leche</span>
+  </button>
+  <button class="nav-btn" onclick="goPage('inv',this)">
+    <span class="icon">🐄</span><span>Animales</span>
+  </button>
+  <button class="nav-btn" onclick="goPage('san',this)">
+    <span class="icon">💉</span><span>Salud</span>
+  </button>
+  <button class="nav-btn" onclick="goPage('costos',this)">
+    <span class="icon">💰</span><span>Costos</span>
+  </button>
+</nav>
+
+<!-- FAB -->
+<button class="fab" id="fab-btn" onclick="openFab()">＋</button>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════ MODALS ══════════ -->
+
+<!-- Modal Producción -->
+<div class="modal-bg" id="modal-prod">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🥛 Registrar Leche</span>
+      <button class="modal-close" onclick="closeModal('modal-prod')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" id="p-fecha">
+      </div>
+      <div class="form-group">
+        <label>Vaca</label>
+        <select id="p-vaca"><option value="">— Seleccionar —</option></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Litros Mañana</label>
+          <input type="number" id="p-manana" step="0.5" min="0" placeholder="0.0">
+        </div>
+        <div class="form-group">
+          <label>Litros Tarde</label>
+          <input type="number" id="p-tarde" step="0.5" min="0" placeholder="0.0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Precio / Litro ($)</label>
+          <input type="number" id="p-precio" step="0.001" min="0" placeholder="0.45">
+        </div>
+        <div class="form-group">
+          <label>Total (auto)</label>
+          <input type="text" id="p-total" readonly placeholder="—" style="background:var(--gray-xl)">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Observaciones</label>
+        <input type="text" id="p-obs" placeholder="Opcional">
+      </div>
+      <button class="btn-primary" onclick="saveProd()">Guardar registro</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Inventario -->
+<div class="modal-bg" id="modal-inv">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🐄 Agregar Animal</span>
+      <button class="modal-close" onclick="closeModal('modal-inv')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>ID / Arete</label>
+          <input type="text" id="i-id" placeholder="V-006">
+        </div>
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" id="i-nombre" placeholder="Nombre">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Categoría</label>
+          <select id="i-cat">
+            <option>Vaca</option><option>Novilla</option><option>Ternera</option><option>Toro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Raza</label>
+          <input type="text" id="i-raza" placeholder="Criollo/DP" value="Criollo/DP">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="i-estado">
+            <option>En producción</option><option>Seca</option><option>Reposición</option>
+            <option>Cría</option><option>Vendido</option><option>Muerto</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>¿Preñada?</label>
+          <select id="i-prenada"><option value="No">No</option><option value="Sí">Sí</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fecha último parto</label>
+          <input type="date" id="i-parto">
+        </div>
+        <div class="form-group">
+          <label>Fecha probable parto</label>
+          <input type="date" id="i-parto-prob">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Observaciones</label>
+        <input type="text" id="i-obs" placeholder="Opcional">
+      </div>
+      <button class="btn-primary" onclick="saveInv()">Guardar animal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Dar de Baja -->
+<div class="modal-bg" id="modal-baja">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🚪 Dar de Baja</span>
+      <button class="modal-close" onclick="closeModal('modal-baja')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="background:var(--amber-xl);padding:12px;border-radius:var(--radius-sm)">
+        <span id="baja-animal-nombre" style="font-weight:700;font-size:15px"></span>
+        <div style="font-size:12px;color:var(--gray-md);margin-top:2px">Este animal dejará de aparecer en el inventario activo</div>
+      </div>
+      <div class="form-group">
+        <label>Motivo</label>
+        <select id="baja-motivo">
+          <option value="Vendido">Vendido</option>
+          <option value="Muerto">Muerto</option>
+          <option value="Regalado">Regalado</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" id="baja-fecha">
+        </div>
+        <div class="form-group">
+          <label>Valor ($) — si vendido</label>
+          <input type="number" id="baja-valor" step="0.01" min="0" placeholder="0.00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Observaciones</label>
+        <input type="text" id="baja-obs" placeholder="Ej: vendido a Sr. Pérez, feria de Cuenca...">
+      </div>
+      <button class="btn-primary" style="background:var(--red-md)" onclick="confirmBaja()">Confirmar baja</button>
+      <button class="btn-secondary" onclick="closeModal('modal-baja')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Sanidad -->
+<div class="modal-bg" id="modal-san">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">💉 Registrar Evento Sanitario</span>
+      <button class="modal-close" onclick="closeModal('modal-san')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" id="s-fecha">
+        </div>
+        <div class="form-group">
+          <label>Animal</label>
+          <select id="s-animal"><option value="Todo el hato">Todo el hato</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tipo de Evento</label>
+          <select id="s-tipo">
+            <option>Vacuna</option><option>Desparasitación</option><option>Tratamiento</option>
+            <option>Secado</option><option>Vitaminas</option><option>Cirugía</option><option>Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Costo ($)</label>
+          <input type="number" id="s-costo" step="0.01" min="0" placeholder="0.00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Producto / Vacuna</label>
+        <input type="text" id="s-producto" placeholder="Ej: Ivermectina, Aftosa...">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Dosis</label>
+          <input type="text" id="s-dosis" placeholder="Ej: 5ml">
+        </div>
+        <div class="form-group">
+          <label>Próxima fecha</label>
+          <input type="date" id="s-proxima">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Responsable</label>
+        <input type="text" id="s-responsable" placeholder="Ej: Christian" value="Christian">
+      </div>
+      <button class="btn-primary" onclick="saveSan()">Guardar evento</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Reproducción -->
+<div class="modal-bg" id="modal-repro">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🐮 Registrar Evento Reproductivo</span>
+      <button class="modal-close" onclick="closeModal('modal-repro')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Animal</label>
+          <select id="r-animal"><option value="">— Seleccionar —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Servicio</label>
+          <select id="r-tipo"><option>IA</option><option>Toro</option><option>Embrión</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fecha Celo</label>
+          <input type="date" id="r-celo">
+        </div>
+        <div class="form-group">
+          <label>Fecha Servicio</label>
+          <input type="date" id="r-servicio">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Diagnóstico</label>
+          <select id="r-diag">
+            <option>Pendiente</option><option>Preñada</option><option>Vacía</option><option>Absorbió</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha Probable Parto</label>
+          <input type="date" id="r-parto">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Observaciones</label>
+        <input type="text" id="r-obs" placeholder="Opcional">
+      </div>
+      <button class="btn-primary" onclick="saveRepro()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Costos -->
+<div class="modal-bg" id="modal-costo">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">💰 Registrar Costo / Ingreso</span>
+      <button class="modal-close" onclick="closeModal('modal-costo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="c-tipo" onchange="updateCostoConceptos()">
+          <option value="costo">Costo</option>
+          <option value="ingreso">Ingreso</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Concepto</label>
+        <select id="c-concepto"></select>
+      </div>
+      <div class="form-group">
+        <label>Detalle / Descripción</label>
+        <input type="text" id="c-detalle" placeholder="Ej: 50kg × $0.50/kg">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Valor ($)</label>
+          <input type="number" id="c-valor" step="0.01" min="0" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" id="c-fecha">
+        </div>
+      </div>
+      <button class="btn-primary" onclick="saveCosto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Sincronización: Configuración -->
+<div class="modal-bg" id="modal-sync-setup">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🔄 Sincronización</span>
+      <button class="modal-close" onclick="closeModal('modal-sync-setup')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="sync-not-configured">
+        <div class="alert alert-info">
+          <div>📋 <strong>Configuración única.</strong> Sigue estos pasos en tu computadora o celular con el Drive/Sheets de Google:
+            <ol style="margin:8px 0 0 18px; font-size:13px; line-height:1.6">
+              <li>Crea una Google Sheet nueva (sheets.new)</li>
+              <li>Ve a <strong>Extensiones → Apps Script</strong></li>
+              <li>Borra el código de ejemplo y pega el script que te dimos</li>
+              <li>Guarda → <strong>Implementar → Nueva implementación</strong></li>
+              <li>Tipo: <strong>Aplicación web</strong>. Acceso: <strong>Cualquier usuario</strong></li>
+              <li>Copia la URL que te entrega y pégala abajo</li>
+            </ol>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:14px">
+          <label>URL del script de Google</label>
+          <input type="text" id="sync-url-input" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+        <button class="btn-primary" onclick="saveSyncUrl()">Guardar y conectar</button>
+      </div>
+      <div id="sync-configured" style="display:none">
+        <div class="alert alert-good">
+          <div>✅ Sincronización configurada</div>
+        </div>
+        <div class="stat-row"><span class="stat-label">Última sincronización</span><span class="stat-value" id="sync-last-time">Nunca</span></div>
+        <button class="btn-primary" onclick="runSync()" id="btn-do-sync">🔄 Sincronizar ahora</button>
+        <button class="btn-secondary" onclick="resetSyncUrl()">Cambiar URL / Desconectar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal FAB chooser -->
+<div class="modal-bg" id="modal-fab">
+  <div class="modal" style="padding-bottom:16px">
+    <div class="modal-header">
+      <span class="modal-title">¿Qué quieres registrar?</span>
+      <button class="modal-close" onclick="closeModal('modal-fab')">✕</button>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:16px">
+      <button onclick="openModal('modal-prod');closeModal('modal-fab')" style="padding:20px 12px;border-radius:12px;border:1.5px solid var(--blue-lt);background:var(--blue-xl);font-size:14px;cursor:pointer;color:var(--blue-dk);font-weight:600">🥛<br>Producción<br>de leche</button>
+      <button onclick="openModal('modal-inv');closeModal('modal-fab')" style="padding:20px 12px;border-radius:12px;border:1.5px solid var(--green-lt);background:var(--green-xl);font-size:14px;cursor:pointer;color:var(--green-dk);font-weight:600">🐄<br>Animal<br>nuevo</button>
+      <button onclick="openModal('modal-san');closeModal('modal-fab')" style="padding:20px 12px;border-radius:12px;border:1.5px solid var(--red-lt);background:var(--red-xl);font-size:14px;cursor:pointer;color:var(--red-dk);font-weight:600">💉<br>Evento<br>sanitario</button>
+      <button onclick="openModal('modal-repro');closeModal('modal-fab')" style="padding:20px 12px;border-radius:12px;border:1.5px solid var(--purple-lt);background:var(--purple-xl);font-size:14px;cursor:pointer;color:var(--purple-dk);font-weight:600">🐮<br>Repro-<br>ducción</button>
+      <button onclick="openModal('modal-costo');closeModal('modal-fab')" style="padding:20px 12px;border-radius:12px;border:1.5px solid var(--amber-lt);background:var(--amber-xl);font-size:14px;cursor:pointer;color:var(--amber-dk);font-weight:600;grid-column:1/-1">💰 Costo o Ingreso</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// SERVICE WORKER — archivo real (no Blob) para que
+// Chrome lo trate como el mismo origen estable y NO
+// reinicie el almacenamiento (IndexedDB) en cada apertura
+// ══════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed:', err));
+  });
+}
+
+
+// ══════════════════════════════════════════════════
+// DATA LAYER — IndexedDB (funciona offline)
+// ══════════════════════════════════════════════════
+const DB_NAME = 'ganaderia_db', DB_VER = 1;
+let db;
+
+function openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      ['inventario','produccion','sanidad','reproduccion','costos'].forEach(s => {
+        if (!d.objectStoreNames.contains(s))
+          d.createObjectStore(s, { keyPath: 'id', autoIncrement: true });
+      });
+    };
+    req.onsuccess = e => { db = e.target.result; res(db); };
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbGet(store) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbAdd(store, obj) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).add(obj);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbDelete(store, id) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).delete(id);
+    req.onsuccess = () => res();
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbUpdate(store, obj) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).put(obj);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+// ══════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════
+function goPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  renderPage(id);
+}
+
+function renderPage(id) {
+  if (id === 'dashboard') renderDashboard();
+  else if (id === 'prod')  renderProd();
+  else if (id === 'inv')   renderInv();
+  else if (id === 'san')   renderSan();
+  else if (id === 'costos') renderCostos();
+}
+
+// ══════════════════════════════════════════════════
+// MODALS
+// ══════════════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'modal-prod') initProdModal();
+  if (id === 'modal-san')  initSanModal();
+  if (id === 'modal-repro') initReproModal();
+  if (id === 'modal-costo') initCostoModal();
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openFab() { openModal('modal-fab'); }
+
+// Close modal on bg click
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
+});
+
+// ══════════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════════
+function showToast(msg, ms = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmt(n, dec = 2) { return Number(n || 0).toFixed(dec); }
+function fmtDate(d) { if (!d) return '—'; return d.replace(/(\d{4})-(\d{2})-(\d{2})/,'$3/$2/$1'); }
+function genSyncId() { return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+
+function badgeState(s) {
+  if (!s) return '';
+  const m = { 'En producción':'green','Seca':'amber','Reposición':'blue','Cría':'gray','Vendido':'gray','Muerto':'red','Regalado':'gray' };
+  return `<span class="badge badge-${m[s]||'gray'}">${s}</span>`;
+}
+
+// ══════════════════════════════════════════════════
+// INIT MODALS (populate selects)
+// ══════════════════════════════════════════════════
+async function initProdModal() {
+  document.getElementById('p-fecha').value = today();
+  document.getElementById('p-precio').value = '0.45';
+  const inv = await dbGet('inventario');
+  const sel = document.getElementById('p-vaca');
+  sel.innerHTML = '<option value="">— Seleccionar —</option>';
+  inv.filter(a => a.estado === 'En producción').forEach(a => {
+    sel.innerHTML += `<option value="${a.idArete}">${a.nombre} (${a.idArete})</option>`;
+  });
+  ['p-manana','p-tarde','p-precio'].forEach(id => {
+    document.getElementById(id).addEventListener('input', calcProdTotal);
+  });
+}
+
+function calcProdTotal() {
+  const m = parseFloat(document.getElementById('p-manana').value)||0;
+  const t = parseFloat(document.getElementById('p-tarde').value)||0;
+  const p = parseFloat(document.getElementById('p-precio').value)||0;
+  document.getElementById('p-total').value = fmt(m+t) + ' L → $' + fmt((m+t)*p);
+}
+
+async function initSanModal() {
+  document.getElementById('s-fecha').value = today();
+  const inv = await dbGet('inventario');
+  const dadosBaja = ['Vendido','Muerto','Regalado'];
+  const sel = document.getElementById('s-animal');
+  sel.innerHTML = '<option value="Todo el hato">Todo el hato</option>';
+  inv.filter(a => !dadosBaja.includes(a.estado)).forEach(a => { sel.innerHTML += `<option value="${a.idArete}">${a.nombre} (${a.idArete})</option>`; });
+}
+
+async function initReproModal() {
+  document.getElementById('r-servicio').value = today();
+  const inv = await dbGet('inventario');
+  const dadosBaja = ['Vendido','Muerto','Regalado'];
+  const sel = document.getElementById('r-animal');
+  sel.innerHTML = '<option value="">— Seleccionar —</option>';
+  inv.filter(a => ['Vaca','Novilla'].includes(a.categoria) && !dadosBaja.includes(a.estado)).forEach(a => {
+    sel.innerHTML += `<option value="${a.idArete}">${a.nombre} (${a.idArete})</option>`;
+  });
+  document.getElementById('r-servicio').addEventListener('change', function() {
+    const d = new Date(this.value); d.setDate(d.getDate() + 283);
+    document.getElementById('r-parto').value = d.toISOString().split('T')[0];
+  });
+}
+
+function initCostoModal() {
+  document.getElementById('c-fecha').value = today();
+  updateCostoConceptos();
+}
+
+function updateCostoConceptos() {
+  const tipo = document.getElementById('c-tipo').value;
+  const sel = document.getElementById('c-concepto');
+  const costos = ['Balanceado / suplemento','Sal mineralizada','Mano de obra','Medicamentos y vacunas','Combustible / transporte','Mantenimiento y herramientas','Pasto / arriendo','Otros gastos'];
+  const ingresos = ['Venta de leche al intermediario','Venta de animales','Otros ingresos'];
+  const opts = tipo === 'costo' ? costos : ingresos;
+  sel.innerHTML = opts.map(o => `<option>${o}</option>`).join('');
+}
+
+// ══════════════════════════════════════════════════
+// SAVE FUNCTIONS
+// ══════════════════════════════════════════════════
+async function saveProd() {
+  const fecha  = document.getElementById('p-fecha').value;
+  const vaca   = document.getElementById('p-vaca').value;
+  const manana = parseFloat(document.getElementById('p-manana').value)||0;
+  const tarde  = parseFloat(document.getElementById('p-tarde').value)||0;
+  const precio = parseFloat(document.getElementById('p-precio').value)||0.45;
+  const obs    = document.getElementById('p-obs').value;
+  if (!fecha || !vaca) { showToast('⚠️ Completa fecha y vaca'); return; }
+  const inv = await dbGet('inventario');
+  const animal = inv.find(a => a.idArete === vaca);
+  await dbAdd('produccion', {
+    fecha, vacaId: vaca, nombre: animal?.nombre || vaca,
+    manana, tarde, total: manana+tarde, precio, ingreso: (manana+tarde)*precio, obs,
+    syncId: genSyncId(), ts: Date.now()
+  });
+  closeModal('modal-prod');
+  showToast('✅ Producción guardada');
+  renderProd();
+}
+
+async function saveInv() {
+  const idArete = document.getElementById('i-id').value.trim();
+  const nombre  = document.getElementById('i-nombre').value.trim();
+  if (!idArete || !nombre) { showToast('⚠️ ID y nombre son obligatorios'); return; }
+  await dbAdd('inventario', {
+    idArete, nombre,
+    categoria:  document.getElementById('i-cat').value,
+    raza:       document.getElementById('i-raza').value,
+    estado:     document.getElementById('i-estado').value,
+    prenada:    document.getElementById('i-prenada').value,
+    ultimoParto:document.getElementById('i-parto').value,
+    partoProbable:document.getElementById('i-parto-prob').value,
+    obs:        document.getElementById('i-obs').value,
+    syncId: genSyncId(), ts: Date.now()
+  });
+  closeModal('modal-inv');
+  showToast('✅ Animal guardado');
+  renderInv();
+}
+
+async function saveSan() {
+  const fecha   = document.getElementById('s-fecha').value;
+  const animal  = document.getElementById('s-animal').value;
+  if (!fecha) { showToast('⚠️ Ingresa la fecha'); return; }
+  const inv = await dbGet('inventario');
+  const a = inv.find(x => x.idArete === animal);
+  await dbAdd('sanidad', {
+    fecha, animalId: animal, nombre: a?.nombre || animal,
+    tipo:       document.getElementById('s-tipo').value,
+    producto:   document.getElementById('s-producto').value,
+    dosis:      document.getElementById('s-dosis').value,
+    costo:      parseFloat(document.getElementById('s-costo').value)||0,
+    proxima:    document.getElementById('s-proxima').value,
+    responsable:document.getElementById('s-responsable').value,
+    syncId: genSyncId(), ts: Date.now()
+  });
+  closeModal('modal-san');
+  showToast('✅ Evento sanitario guardado');
+  renderSan();
+}
+
+async function saveRepro() {
+  const animalId = document.getElementById('r-animal').value;
+  if (!animalId) { showToast('⚠️ Selecciona un animal'); return; }
+  const inv = await dbGet('inventario');
+  const a = inv.find(x => x.idArete === animalId);
+  await dbAdd('reproduccion', {
+    animalId, nombre: a?.nombre || animalId,
+    tipoServicio: document.getElementById('r-tipo').value,
+    fechaCelo:    document.getElementById('r-celo').value,
+    fechaServicio:document.getElementById('r-servicio').value,
+    diagnostico:  document.getElementById('r-diag').value,
+    partoProbable:document.getElementById('r-parto').value,
+    obs:          document.getElementById('r-obs').value,
+    syncId: genSyncId(), ts: Date.now()
+  });
+  closeModal('modal-repro');
+  showToast('✅ Evento reproductivo guardado');
+  renderSan();
+}
+
+async function saveCosto() {
+  const valor = parseFloat(document.getElementById('c-valor').value)||0;
+  if (!valor) { showToast('⚠️ Ingresa un valor'); return; }
+  await dbAdd('costos', {
+    tipo:     document.getElementById('c-tipo').value,
+    concepto: document.getElementById('c-concepto').value,
+    detalle:  document.getElementById('c-detalle').value,
+    valor, fecha: document.getElementById('c-fecha').value,
+    syncId: genSyncId(), ts: Date.now()
+  });
+  closeModal('modal-costo');
+  showToast('✅ Guardado');
+  renderCostos();
+}
+
+// ══════════════════════════════════════════════════
+// DELETE
+// ══════════════════════════════════════════════════
+async function del(store, id, renderFn) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  await dbDelete(store, id);
+  showToast('🗑 Eliminado');
+  renderFn();
+}
+
+// ══════════════════════════════════════════════════
+// RENDER: DASHBOARD
+// ══════════════════════════════════════════════════
+async function renderDashboard() {
+  const [inv, prod, san, costos] = await Promise.all([
+    dbGet('inventario'), dbGet('produccion'), dbGet('sanidad'), dbGet('costos')
+  ]);
+
+  // Current month filter
+  const now = new Date(), ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const prodMes = prod.filter(p => p.fecha && p.fecha.startsWith(ym));
+  const sanMes  = san.filter(s => s.fecha && s.fecha.startsWith(ym));
+  const costosMes = costos.filter(c => c.fecha && c.fecha.startsWith(ym));
+
+  const totalLitros = prodMes.reduce((s,p) => s + (p.total||0), 0);
+  const totalIngresos = costosMes.filter(c=>c.tipo==='ingreso').reduce((s,c)=>s+c.valor,0)
+    + prodMes.reduce((s,p)=>s+(p.ingreso||0),0);
+  const totalCostos = costosMes.filter(c=>c.tipo==='costo').reduce((s,c)=>s+c.valor,0)
+    + sanMes.reduce((s,s2)=>s+(s2.costo||0),0);
+  const utilidad = totalIngresos - totalCostos;
+  const costoPorLitro = totalLitros > 0 ? totalCostos / totalLitros : 0;
+  const vacasActivas = inv.filter(a => a.estado === 'En producción').length;
+
+  // KPIs
+  const kpis = [
+    { label:'🥛 Litros este mes', value: fmt(totalLitros,1)+'L', sub:'meta: '+(vacasActivas*15*30)+'L', cls:'blue' },
+    { label:'💰 Ingresos ($)', value: '$'+fmt(totalIngresos), sub:'del mes', cls:'' },
+    { label:'💸 Costos ($)', value: '$'+fmt(totalCostos), sub:'del mes', cls:'amber' },
+    { label:'📈 Utilidad ($)', value: (utilidad>=0?'$':'-$')+fmt(Math.abs(utilidad)), sub: utilidad>=0?'✅ Ganancia':'❌ Pérdida', cls: utilidad>=0?'':'red' },
+    { label:'⚖️ Costo/Litro ($)', value: '$'+fmt(costoPorLitro,3), sub:'precio objetivo>costo', cls:'purple' },
+    { label:'🐄 Vacas activas', value: vacasActivas, sub:'en ordeño', cls:'teal' },
+  ];
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k =>
+    `<div class="kpi-card ${k.cls}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value ${k.cls==='red'?'bad':k.cls===''&&utilidad>=0?'good':''}">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`
+  ).join('');
+
+  // Alerts
+  const today30 = new Date(); today30.setDate(today30.getDate()+30);
+  const alerts = [];
+  inv.forEach(a => {
+    if (a.partoProbable) {
+      const dp = new Date(a.partoProbable);
+      if (dp <= today30 && dp >= new Date()) {
+        alerts.push({ type:'warn', msg:`<strong>${a.nombre}</strong> — Parto probable: ${fmtDate(a.partoProbable)}` });
+      }
+    }
+    if (a.prenada==='Sí' && a.estado==='En producción') {
+      alerts.push({ type:'info', msg:`<strong>${a.nombre}</strong> — Preñada en producción: considerar secar` });
+    }
+  });
+  san.forEach(s => {
+    if (s.proxima) {
+      const dp = new Date(s.proxima);
+      if (dp <= today30 && dp >= new Date()) {
+        alerts.push({ type:'warn', msg:`<strong>${s.nombre}</strong> — ${s.tipo} pendiente: ${fmtDate(s.proxima)}` });
+      }
+    }
+  });
+  if (!alerts.length) alerts.push({ type:'good', msg:'Sin alertas por ahora ✅' });
+  document.getElementById('alerts-body').innerHTML = alerts.map(a =>
+    `<div class="alert alert-${a.type}"><div>${a.msg}</div></div>`
+  ).join('');
+
+  // Hato summary
+  const cats = { 'En producción':0, 'Seca':0, 'Novilla':0, 'Ternera':0 };
+  inv.forEach(a => {
+    if (a.estado==='En producción') cats['En producción']++;
+    else if (a.estado==='Seca') cats['Seca']++;
+    else if (a.categoria==='Novilla') cats['Novilla']++;
+    else if (a.categoria==='Ternera') cats['Ternera']++;
+  });
+  document.getElementById('hato-summary').innerHTML = Object.entries(cats).map(([k,v]) =>
+    `<div class="stat-row"><span class="stat-label">${k}</span><span class="stat-value">${v}</span></div>`
+  ).join('') + `<div class="stat-row"><span class="stat-label"><strong>Total</strong></span><span class="stat-value"><strong>${inv.length}</strong></span></div>`;
+}
+
+// ══════════════════════════════════════════════════
+// RENDER: PRODUCCIÓN
+// ══════════════════════════════════════════════════
+async function renderProd() {
+  const prod = await dbGet('produccion');
+  const tbody = document.getElementById('tbody-prod');
+  if (!prod.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="icon">🥛</div><p>Sin registros.<br>Toca ＋ para agregar</p></div></td></tr>';
+    return;
+  }
+  const sorted = [...prod].sort((a,b) => b.ts - a.ts);
+  tbody.innerHTML = sorted.map(p =>
+    `<tr>
+      <td>${fmtDate(p.fecha)}</td>
+      <td>${p.nombre}</td>
+      <td>${fmt(p.manana,1)}</td>
+      <td>${fmt(p.tarde,1)}</td>
+      <td><strong>${fmt(p.total,1)} L</strong></td>
+      <td>$${fmt(p.ingreso)}</td>
+      <td><button class="btn-danger" onclick="del('produccion',${p.id},renderProd)">🗑</button></td>
+    </tr>`
+  ).join('');
+}
+
+// ══════════════════════════════════════════════════
+// RENDER: INVENTARIO
+// ══════════════════════════════════════════════════
+let invFilter = 'activos';
+
+function setInvFilter(f) {
+  invFilter = f;
+  document.getElementById('chip-activos').classList.toggle('active', f==='activos');
+  document.getElementById('chip-todos').classList.toggle('active', f==='todos');
+  renderInv();
+}
+
+async function renderInv() {
+  let inv = await dbGet('inventario');
+  if (invFilter === 'activos') {
+    inv = inv.filter(a => a.estado !== 'Vendido' && a.estado !== 'Muerto' && a.estado !== 'Regalado');
+  }
+  const tbody = document.getElementById('tbody-inv');
+  if (!inv.length) {
+    const msg = invFilter==='activos' ? 'Sin animales activos.<br>Toca ＋ para agregar' : 'Sin animales registrados';
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="icon">🐄</div><p>${msg}</p></div></td></tr>`;
+    return;
+  }
+  const dadosBaja = ['Vendido','Muerto','Regalado'];
+  tbody.innerHTML = inv.map(a => {
+    const isBaja = dadosBaja.includes(a.estado);
+    return `<tr class="${isBaja?'row-baja':''}">
+      <td><strong>${a.idArete}</strong></td>
+      <td>${a.nombre}</td>
+      <td>${a.categoria}</td>
+      <td>${badgeState(a.estado)}</td>
+      <td>${a.prenada==='Sí' ? '<span class="badge badge-amber">Sí</span>' : 'No'}</td>
+      <td>${fmtDate(a.ultimoParto)}</td>
+      <td>
+        <div class="btn-icon-row">
+          ${isBaja ? '' : `<button onclick="openBajaModal(${a.id})" title="Dar de baja">🚪</button>`}
+          <button class="btn-danger" onclick="del('inventario',${a.id},renderInv)" title="Eliminar registro">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function openBajaModal(id) {
+  const inv = await dbGet('inventario');
+  const a = inv.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('baja-animal-nombre').textContent = `${a.nombre} (${a.idArete})`;
+  document.getElementById('baja-fecha').value = today();
+  document.getElementById('baja-valor').value = '';
+  document.getElementById('baja-obs').value = '';
+  document.getElementById('baja-motivo').value = 'Vendido';
+  document.getElementById('modal-baja').dataset.animalId = id;
+  openModal('modal-baja');
+}
+
+async function confirmBaja() {
+  const id = parseInt(document.getElementById('modal-baja').dataset.animalId);
+  const inv = await dbGet('inventario');
+  const a = inv.find(x => x.id === id);
+  if (!a) return;
+  const motivo = document.getElementById('baja-motivo').value;
+  const fecha = document.getElementById('baja-fecha').value;
+  const valor = parseFloat(document.getElementById('baja-valor').value) || 0;
+  const obsBaja = document.getElementById('baja-obs').value;
+
+  a.estado = motivo;
+  a.fechaBaja = fecha;
+  a.valorBaja = valor;
+  a.obs = (a.obs ? a.obs + ' | ' : '') + `Baja (${motivo}) ${fmtDate(fecha)}${obsBaja ? ': '+obsBaja : ''}`;
+  await dbUpdate('inventario', a);
+
+  // Si fue vendido y tiene valor, lo registra como ingreso automático
+  if (motivo === 'Vendido' && valor > 0) {
+    await dbAdd('costos', {
+      tipo: 'ingreso', concepto: 'Venta de animales',
+      detalle: `${a.nombre} (${a.idArete})`, valor, fecha, syncId: genSyncId(), ts: Date.now()
+    });
+  }
+
+  closeModal('modal-baja');
+  showToast(`✅ ${a.nombre} dado de baja: ${motivo}`);
+  renderInv();
+}
+
+// ══════════════════════════════════════════════════
+// RENDER: SANIDAD + REPRO
+// ══════════════════════════════════════════════════
+async function renderSan() {
+  const [san, repro] = await Promise.all([dbGet('sanidad'), dbGet('reproduccion')]);
+
+  const tbodySan = document.getElementById('tbody-san');
+  if (!san.length) {
+    tbodySan.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="icon">💉</div><p>Sin eventos sanitarios</p></div></td></tr>';
+  } else {
+    tbodySan.innerHTML = [...san].sort((a,b)=>b.ts-a.ts).map(s =>
+      `<tr>
+        <td>${fmtDate(s.fecha)}</td>
+        <td>${s.nombre}</td>
+        <td><span class="badge badge-red">${s.tipo}</span></td>
+        <td>${s.producto||'—'}</td>
+        <td>$${fmt(s.costo)}</td>
+        <td><button class="btn-danger" onclick="del('sanidad',${s.id},renderSan)">🗑</button></td>
+      </tr>`
+    ).join('');
+  }
+
+  const tbodyRepro = document.getElementById('tbody-repro');
+  if (!repro.length) {
+    tbodyRepro.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="icon">🐮</div><p>Sin eventos reproductivos</p></div></td></tr>';
+  } else {
+    tbodyRepro.innerHTML = [...repro].sort((a,b)=>b.ts-a.ts).map(r =>
+      `<tr>
+        <td>${r.nombre}</td>
+        <td><span class="badge badge-blue">${r.tipoServicio}</span></td>
+        <td>${fmtDate(r.fechaServicio)}</td>
+        <td>${r.diagnostico==='Preñada'?'<span class="badge badge-green">Preñada</span>':r.diagnostico}</td>
+        <td>${fmtDate(r.partoProbable)}</td>
+        <td><button class="btn-danger" onclick="del('reproduccion',${r.id},renderSan)">🗑</button></td>
+      </tr>`
+    ).join('');
+  }
+}
+
+// ══════════════════════════════════════════════════
+// RENDER: COSTOS
+// ══════════════════════════════════════════════════
+async function renderCostos() {
+  const [prod, san, costos] = await Promise.all([dbGet('produccion'), dbGet('sanidad'), dbGet('costos')]);
+  const now = new Date(), ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  const prodMes = prod.filter(p => p.fecha?.startsWith(ym));
+  const sanMes  = san.filter(s => s.fecha?.startsWith(ym));
+  const costosMes = costos.filter(c => c.fecha?.startsWith(ym));
+
+  // Ingresos
+  const ingresosLeche = prodMes.reduce((s,p)=>s+(p.ingreso||0), 0);
+  const ingresosManuales = costosMes.filter(c=>c.tipo==='ingreso');
+  const totalIngresos = ingresosLeche + ingresosManuales.reduce((s,c)=>s+c.valor,0);
+
+  let ingHtml = `<div class="stat-row"><span class="stat-label">Venta de leche (auto)</span><span class="stat-value" style="color:var(--green-dk)">$${fmt(ingresosLeche)}</span></div>`;
+  ingresosManuales.forEach(c => {
+    ingHtml += `<div class="stat-row"><span class="stat-label">${c.concepto}</span><span class="stat-value" style="color:var(--green-dk)">$${fmt(c.valor)}</span></div>`;
+  });
+  ingHtml += `<div class="stat-row" style="border-top:2px solid var(--green-lt);margin-top:4px"><span class="stat-label"><strong>TOTAL INGRESOS</strong></span><span class="stat-value" style="color:var(--green-dk);font-size:18px">$${fmt(totalIngresos)}</span></div>`;
+  document.getElementById('ingresos-body').innerHTML = ingHtml;
+
+  // Costos
+  const costoSanidad = sanMes.reduce((s,x)=>s+(x.costo||0), 0);
+  const costosManualesGrp = {};
+  costosMes.filter(c=>c.tipo==='costo').forEach(c => {
+    costosManualesGrp[c.concepto] = (costosManualesGrp[c.concepto]||0) + c.valor;
+  });
+  const totalCostos = costoSanidad + Object.values(costosManualesGrp).reduce((s,v)=>s+v,0);
+
+  let costHtml = `<div class="stat-row"><span class="stat-label">Medicamentos y vacunas (auto)</span><span class="stat-value" style="color:var(--red-md)">$${fmt(costoSanidad)}</span></div>`;
+  Object.entries(costosManualesGrp).forEach(([k,v]) => {
+    costHtml += `<div class="stat-row"><span class="stat-label">${k}</span><span class="stat-value" style="color:var(--red-md)">$${fmt(v)}</span></div>`;
+  });
+  costHtml += `<div class="stat-row" style="border-top:2px solid var(--red-lt);margin-top:4px"><span class="stat-label"><strong>TOTAL COSTOS</strong></span><span class="stat-value" style="color:var(--red-md);font-size:18px">$${fmt(totalCostos)}</span></div>`;
+  document.getElementById('costos-body').innerHTML = costHtml;
+
+  // Resultado
+  const utilidad = totalIngresos - totalCostos;
+  const litros = prodMes.reduce((s,p)=>s+(p.total||0), 0);
+  const cxl = litros > 0 ? totalCostos/litros : 0;
+  const pxl = litros > 0 ? totalIngresos/litros : 0;
+  const margen = pxl - cxl;
+  const peq = pxl > 0 ? totalCostos / pxl : 0;
+
+  document.getElementById('resultado-body').innerHTML = `
+    <div class="stat-row"><span class="stat-label">Litros del mes</span><span class="stat-value">${fmt(litros,1)} L</span></div>
+    <div class="stat-row"><span class="stat-label">Costo por litro</span><span class="stat-value">$${fmt(cxl,3)}</span></div>
+    <div class="stat-row"><span class="stat-label">Precio de venta / litro</span><span class="stat-value">$${fmt(pxl,3)}</span></div>
+    <div class="stat-row"><span class="stat-label">Margen por litro</span><span class="stat-value" style="color:${margen>=0?'var(--green-dk)':'var(--red-md)'}">$${fmt(margen,3)}</span></div>
+    <div class="stat-row"><span class="stat-label">Punto de equilibrio</span><span class="stat-value">${fmt(peq,1)} L/mes</span></div>
+    <div class="stat-row" style="border-top:2px solid ${utilidad>=0?'var(--green-lt)':'var(--red-lt)'};margin-top:6px;padding-top:12px">
+      <span class="stat-label" style="font-size:15px;font-weight:700">UTILIDAD / PÉRDIDA</span>
+      <span class="stat-value" style="font-size:22px;color:${utilidad>=0?'var(--green-dk)':'var(--red-md)'}">
+        ${utilidad>=0?'$':'-$'}${fmt(Math.abs(utilidad))} ${utilidad>=0?'✅':'❌'}
+      </span>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════
+// EXPORT EXCEL — misma estructura que tu archivo
+// ══════════════════════════════════════════════════
+async function exportExcel() {
+  showToast('⏳ Generando Excel...');
+  const [inv, prod, san, repro, costosManuales] = await Promise.all([
+    dbGet('inventario'), dbGet('produccion'), dbGet('sanidad'),
+    dbGet('reproduccion'), dbGet('costos')
+  ]);
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Hoja 1: Inventario
+  const invData = [
+    ['ID / Arete','Nombre','Categoría','Raza','Estado actual','Preñada','Fecha último parto','Fecha probable parto','Fecha Baja','Valor Baja ($)','Observaciones']
+  ];
+  inv.forEach(a => invData.push([
+    a.idArete, a.nombre, a.categoria, a.raza, a.estado, a.prenada,
+    a.ultimoParto, a.partoProbable, a.fechaBaja||'', a.valorBaja||'', a.obs||''
+  ]));
+  const ws1 = XLSX.utils.aoa_to_sheet(invData);
+  ws1['!cols'] = [10,12,14,14,16,10,18,18,14,14,34].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws1, '1. Inventario');
+
+  // ── Hoja 2: Producción Diaria
+  const prodData = [
+    ['Fecha','ID Vaca','Nombre','Litros Mañana','Litros Tarde','Total Litros','Precio/Litro ($)','Ingreso ($)','Observaciones']
+  ];
+  prod.sort((a,b)=>a.fecha?.localeCompare(b.fecha)).forEach(p => prodData.push([
+    p.fecha, p.vacaId, p.nombre, p.manana, p.tarde, p.total, p.precio, p.ingreso, p.obs||''
+  ]));
+  // Totales
+  const totalL = prod.reduce((s,p)=>s+(p.total||0),0);
+  const totalI = prod.reduce((s,p)=>s+(p.ingreso||0),0);
+  prodData.push(['TOTALES','','',
+    prod.reduce((s,p)=>s+(p.manana||0),0),
+    prod.reduce((s,p)=>s+(p.tarde||0),0),
+    totalL,'',totalI,''
+  ]);
+  const ws2 = XLSX.utils.aoa_to_sheet(prodData);
+  ws2['!cols'] = [13,10,12,14,14,13,14,13,30].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws2, '2. Producción Diaria');
+
+  // ── Hoja 3: Reproducción
+  const reproData = [
+    ['ID Animal','Nombre','Fecha Celo','Tipo Servicio','Fecha Servicio','Diagnóstico','Fecha Parto Real','Fecha Probable Parto','Observaciones']
+  ];
+  repro.forEach(r => reproData.push([
+    r.animalId, r.nombre, r.fechaCelo||'', r.tipoServicio, r.fechaServicio||'',
+    r.diagnostico, '', r.partoProbable||'', r.obs||''
+  ]));
+  const ws3 = XLSX.utils.aoa_to_sheet(reproData);
+  ws3['!cols'] = [10,12,14,14,14,14,16,18,34].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws3, '3. Reproducción');
+
+  // ── Hoja 4: Sanidad
+  const sanData = [
+    ['Fecha','ID Animal','Nombre','Tipo Evento','Producto / Vacuna','Dosis','Costo ($)','Próxima Fecha','Responsable']
+  ];
+  san.forEach(s => sanData.push([
+    s.fecha, s.animalId, s.nombre, s.tipo, s.producto||'', s.dosis||'',
+    s.costo||0, s.proxima||'', s.responsable||''
+  ]));
+  const totalSan = san.reduce((s,x)=>s+(x.costo||0),0);
+  sanData.push(['COSTO SANITARIO TOTAL ($):','','','','','',totalSan,'','']);
+  const ws4 = XLSX.utils.aoa_to_sheet(sanData);
+  ws4['!cols'] = [12,12,14,18,22,10,11,15,16].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws4, '4. Sanidad');
+
+  // ── Hoja 5: Costos e Ingresos
+  const now = new Date(), ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const prodMes = prod.filter(p=>p.fecha?.startsWith(ym));
+  const sanMes  = san.filter(s=>s.fecha?.startsWith(ym));
+  const costosMes = costosManuales.filter(c=>c.fecha?.startsWith(ym));
+
+  const ingresosLeche = prodMes.reduce((s,p)=>s+(p.ingreso||0),0);
+  const ingManuales   = costosMes.filter(c=>c.tipo==='ingreso').reduce((s,c)=>s+c.valor,0);
+  const totalIngresos = ingresosLeche + ingManuales;
+  const costoSanidad  = sanMes.reduce((s,x)=>s+(x.costo||0),0);
+  const costoManuales = costosMes.filter(c=>c.tipo==='costo').reduce((s,c)=>s+c.valor,0);
+  const totalCostos   = costoSanidad + costoManuales;
+  const utilidad      = totalIngresos - totalCostos;
+  const litrosMes     = prodMes.reduce((s,p)=>s+(p.total||0),0);
+  const cxl = litrosMes>0 ? totalCostos/litrosMes : 0;
+  const pxl = litrosMes>0 ? totalIngresos/litrosMes : 0;
+
+  const ci = [
+    ['A. INGRESOS','','',''],
+    ['Concepto','Detalle','Valor ($)','Total ($)'],
+    ['Venta de leche al intermediario','Calculado de Producción',ingresosLeche,ingresosLeche],
+  ];
+  costosMes.filter(c=>c.tipo==='ingreso').forEach(c => ci.push([c.concepto,c.detalle,c.valor,c.valor]));
+  ci.push(['TOTAL INGRESOS ($)','','',totalIngresos]);
+  ci.push(['','','','']);
+  ci.push(['B. COSTOS DEL MES','','','']);
+  ci.push(['Concepto','Detalle','Valor ($)','Total ($)']);
+  ci.push(['Medicamentos y vacunas','Calculado de Sanidad',costoSanidad,costoSanidad]);
+  costosMes.filter(c=>c.tipo==='costo').forEach(c => ci.push([c.concepto,c.detalle,c.valor,c.valor]));
+  ci.push(['TOTAL COSTOS ($)','','',totalCostos]);
+  ci.push(['','','','']);
+  ci.push(['C. RESULTADOS','','','']);
+  ci.push(['Indicador','','Valor','']);
+  ci.push(['Total litros del mes','',litrosMes,'']);
+  ci.push(['Ingresos totales ($)','',totalIngresos,'']);
+  ci.push(['Costos totales ($)','',totalCostos,'']);
+  ci.push(['UTILIDAD / PÉRDIDA ($)','',utilidad,utilidad>=0?'✅ Ganancia':'❌ Revisar costos']);
+  ci.push(['Costo por litro ($)','',cxl,'']);
+  ci.push(['Precio de venta por litro ($)','',pxl,'']);
+  ci.push(['Margen por litro ($)','',pxl-cxl,pxl-cxl>=0?'✅ Positivo':'❌ Negativo']);
+  ci.push(['Punto de equilibrio (L/mes)','',pxl>0?totalCostos/pxl:0,'']);
+
+  const ws5 = XLSX.utils.aoa_to_sheet(ci);
+  ws5['!cols'] = [32,28,16,16].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws5, '5. Costos-Ingresos');
+
+  // ── Download
+  const mes = now.toLocaleString('es-EC',{month:'long',year:'numeric'}).replace(' de ','_');
+  XLSX.writeFile(wb, `Ganaderia_${mes}.xlsx`);
+  showToast('✅ Excel descargado');
+}
+
+// ══════════════════════════════════════════════════
+// SINCRONIZACIÓN — Google Sheets (manual, bajo demanda)
+// ══════════════════════════════════════════════════
+function getSyncUrl() { return localStorage.getItem('gan_sync_url') || ''; }
+function getLastSync() { return localStorage.getItem('gan_last_sync') || ''; }
+
+function openSyncSettings() {
+  const url = getSyncUrl();
+  document.getElementById('sync-not-configured').style.display = url ? 'none' : 'block';
+  document.getElementById('sync-configured').style.display = url ? 'block' : 'none';
+  if (url) {
+    const last = getLastSync();
+    document.getElementById('sync-last-time').textContent = last ? new Date(last).toLocaleString('es-EC') : 'Nunca';
+  }
+  openModal('modal-sync-setup');
+}
+
+function saveSyncUrl() {
+  const url = document.getElementById('sync-url-input').value.trim();
+  if (!url.startsWith('https://script.google.com/')) {
+    showToast('⚠️ Pega la URL completa que termina en /exec');
+    return;
+  }
+  localStorage.setItem('gan_sync_url', url);
+  showToast('✅ Conectado. Ya puedes sincronizar');
+  openSyncSettings();
+}
+
+function resetSyncUrl() {
+  if (!confirm('¿Desconectar la sincronización? Tus datos locales no se borran.')) return;
+  localStorage.removeItem('gan_sync_url');
+  localStorage.removeItem('gan_last_sync');
+  openSyncSettings();
+}
+
+function rowFor(store, item) {
+  // Convierte un registro a fila plana en el MISMO orden que espera el script de Google
+  if (store === 'inventario') return [item.idArete,item.nombre,item.categoria,item.raza,item.estado,item.prenada,item.ultimoParto||'',item.partoProbable||'',item.fechaBaja||'',item.valorBaja||'',item.obs||'',item.syncId];
+  if (store === 'produccion') return [item.fecha,item.vacaId,item.nombre,item.manana,item.tarde,item.total,item.precio,item.ingreso,item.obs||'',item.syncId];
+  if (store === 'sanidad')    return [item.fecha,item.animalId,item.nombre,item.tipo,item.producto||'',item.dosis||'',item.costo||0,item.proxima||'',item.responsable||'',item.syncId];
+  if (store === 'reproduccion') return [item.animalId,item.nombre,item.tipoServicio,item.fechaCelo||'',item.fechaServicio||'',item.diagnostico,item.partoProbable||'',item.obs||'',item.syncId];
+  if (store === 'costos')     return [item.tipo,item.concepto,item.detalle||'',item.valor,item.fecha||'',item.syncId];
+}
+
+async function runSync() {
+  const url = getSyncUrl();
+  if (!url) { showToast('⚠️ Configura primero la URL'); return; }
+  if (!navigator.onLine) { showToast('📡 Sin conexión a internet ahora mismo'); return; }
+
+  const btn = document.getElementById('btn-do-sync');
+  btn.textContent = '⏳ Sincronizando...'; btn.disabled = true;
+
+  try {
+    const stores = ['inventario','produccion','sanidad','reproduccion','costos'];
+    const payload = {};
+    for (const s of stores) {
+      const items = await dbGet(s);
+      // Asegura que todo registro tenga syncId (datos creados antes de esta función)
+      for (const it of items) {
+        if (!it.syncId) { it.syncId = genSyncId(); await dbUpdate(s, it); }
+      }
+      payload[s] = items.map(it => rowFor(s, it));
+    }
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS con Apps Script
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+
+    if (data.status === 'success') {
+      const now = new Date().toISOString();
+      localStorage.setItem('gan_last_sync', now);
+      document.getElementById('sync-last-time').textContent = new Date(now).toLocaleString('es-EC');
+      showToast('✅ Sincronizado con Google Sheets');
+    } else {
+      showToast('❌ Error: ' + (data.message || 'desconocido'));
+    }
+  } catch (err) {
+    showToast('❌ No se pudo conectar. Revisa la URL o tu conexión');
+  }
+  btn.textContent = '🔄 Sincronizar ahora'; btn.disabled = false;
+}
+
+function updateSyncIndicator() {
+  const dot = navigator.onLine ? '🟢' : '🔴';
+  document.getElementById('header-subtitle').textContent =
+    navigator.onLine ? `${dot} Con señal — puedes sincronizar` : `${dot} Sin señal · Todo guardado`;
+}
+window.addEventListener('online', updateSyncIndicator);
+window.addEventListener('offline', updateSyncIndicator);
+
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner-wrap').innerHTML = `
+    <div class="install-banner">
+      <div class="icon">📲</div>
+      <div><strong>Instalar como app</strong><p>Funciona sin internet, como app nativa en tu Android</p></div>
+      <button class="btn-install" onclick="installApp()">Instalar</button>
+    </div>`;
+});
+
+async function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    document.getElementById('install-banner-wrap').innerHTML = '';
+    showToast('✅ App instalada');
+  }
+  deferredPrompt = null;
+}
+
+// ══════════════════════════════════════════════════
+// SEED DATA (tus 8 animales ya cargados)
+// ══════════════════════════════════════════════════
+async function seedIfEmpty() {
+  const inv = await dbGet('inventario');
+  if (inv.length > 0) return;
+  const animales = [
+    { idArete:'V-001', nombre:'Luna',    categoria:'Vaca',    raza:'Criollo/DP', estado:'En producción', prenada:'Sí', ultimoParto:'2026-01-10', partoProbable:'2026-10-20', obs:'Preñada — considerar secar en agosto' },
+    { idArete:'V-002', nombre:'Estrella',categoria:'Vaca',    raza:'Criollo/DP', estado:'En producción', prenada:'No', ultimoParto:'2026-03-15', partoProbable:'', obs:'' },
+    { idArete:'V-003', nombre:'Canela',  categoria:'Vaca',    raza:'Criollo/DP', estado:'En producción', prenada:'No', ultimoParto:'2026-02-20', partoProbable:'', obs:'' },
+    { idArete:'V-004', nombre:'Mora',    categoria:'Vaca',    raza:'Criollo/DP', estado:'En producción', prenada:'Sí', ultimoParto:'2026-04-05', partoProbable:'', obs:'Preñada — secar pronto' },
+    { idArete:'V-005', nombre:'Rosita',  categoria:'Vaca',    raza:'Criollo/DP', estado:'Seca',          prenada:'Sí', ultimoParto:'2025-11-01', partoProbable:'2026-08-15', obs:'Parto esperado agosto 2026' },
+    { idArete:'N-001', nombre:'Brisa',   categoria:'Novilla', raza:'Criollo/DP', estado:'Reposición',    prenada:'No', ultimoParto:'', partoProbable:'', obs:'Preparar para primer servicio' },
+    { idArete:'T-001', nombre:'Nube',    categoria:'Ternera', raza:'Criollo/DP', estado:'Cría',          prenada:'No', ultimoParto:'', partoProbable:'', obs:'' },
+    { idArete:'T-002', nombre:'Perla',   categoria:'Ternera', raza:'Criollo/DP', estado:'Cría',          prenada:'No', ultimoParto:'', partoProbable:'', obs:'' },
+  ];
+  for (const a of animales) await dbAdd('inventario', { ...a, syncId: genSyncId(), ts: Date.now() });
+}
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+async function init() {
+  await openDB();
+  await seedIfEmpty();
+  updateSyncIndicator();
+  renderDashboard();
+}
+
+init();
+</script>
+</body>
+</html>
